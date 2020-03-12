@@ -41,25 +41,25 @@ To get the grid cells with enough records specified by `n_per_cell`
 argument:
 
 ``` r
-cell_100k$cells_with_data
-#> Simple feature collection with 280 features and 5 fields
+filter(cell_100k$cells_with_data, enough_data)
+#> Simple feature collection with 141 features and 5 fields
 #> geometry type:  POLYGON
 #> dimension:      XY
-#> bbox:           xmin: -253235.9 ymin: -930092.5 xmax: 2146764 ymax: 1169908
+#> bbox:           xmin: -253235.9 ymin: -830092.5 xmax: 1946764 ymax: 1069908
 #> epsg (SRID):    NA
 #> proj4string:    +proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs
 #> First 10 features:
 #>    id_cells  n enough_data                       geometry long_cell lat_cell
-#> 1       211  2       FALSE POLYGON ((-153235.9 -930092... -97.06609 29.61000
-#> 2       212  4       FALSE POLYGON ((-53235.92 -930092... -96.03342 29.61522
-#> 3       213  2       FALSE POLYGON ((46764.08 -930092.... -95.00074 29.61063
-#> 4       214  2       FALSE POLYGON ((146764.1 -930092.... -93.96829 29.59625
-#> 5       257 11        TRUE POLYGON ((-253235.9 -830092... -98.12156 30.49581
-#> 6       258  8       FALSE POLYGON ((-153235.9 -830092... -97.07780 30.51096
-#> 7       259 19        TRUE POLYGON ((-53235.92 -830092... -96.03379 30.51622
-#> 8       260  1       FALSE POLYGON ((46764.08 -830092.... -94.98976 30.51160
-#> 9       261  4       FALSE POLYGON ((146764.1 -830092.... -93.94598 30.49709
-#> 10      263  4       FALSE POLYGON ((346764.1 -830092.... -91.86015 30.43842
+#> 1       257 11        TRUE POLYGON ((-253235.9 -830092... -98.12156 30.49581
+#> 2       259 19        TRUE POLYGON ((-53235.92 -830092... -96.03379 30.51622
+#> 3       306 12        TRUE POLYGON ((-53235.92 -730092... -96.03416 31.41551
+#> 4       352 59        TRUE POLYGON ((-153235.9 -630092... -97.10201 32.30789
+#> 5       353 25        TRUE POLYGON ((-53235.92 -630092... -96.03454 32.31325
+#> 6       354 22        TRUE POLYGON ((46764.08 -630092.... -94.96707 32.30854
+#> 7       355 13        TRUE POLYGON ((146764.1 -630092.... -93.89985 32.29375
+#> 8       359 16        TRUE POLYGON ((546764.1 -630092.... -89.63894 32.13401
+#> 9       399 54        TRUE POLYGON ((-153235.9 -530092... -97.11453 33.20422
+#> 10      400 20        TRUE POLYGON ((-53235.92 -530092... -96.03494 33.20963
 ```
 
 To get the raw records that to be used (i.e. fall within cells with

@@ -29,7 +29,7 @@ cell_100k = plt_summary(cell_size = 100000, dat = d, n_per_cell = 10)
 To get the grid cells with enough records specified by `n_per_cell` argument:
 
 ```{r}
-cell_100k$cells_with_data
+filter(cell_100k$cells_with_data, enough_data)
 ```
 
 To get the raw records that to be used (i.e. fall within cells with enough data):
