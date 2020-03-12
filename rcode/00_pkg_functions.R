@@ -69,13 +69,13 @@ plt_summary = function(us_map = readRDS("data/usa_map.rds"),
 }
 
 # usage examples ----
-d = readr::read_csv("data/Claytonia virginica_inat.csv") %>% 
-  dplyr::select(longitude, latitude, everything()) %>% 
-  filter(flowers == 1) %>% 
-  drop_na(longitude, latitude) %>% 
-  rename(id_iNat = id)
-
-cell_100k = plt_summary(cell_size = 100000, dat = d, n_per_cell = 10)
-cell_100k$cells_with_data
-cell_100k$dat_to_use
-cell_100k$fig
+# d = readr::read_csv("data/Claytonia virginica_inat.csv") %>% 
+#   dplyr::select(longitude, latitude, everything()) %>% 
+#   filter(flowers == 1) %>% 
+#   drop_na(longitude, latitude) %>% 
+#   rename(id_iNat = id)
+# 
+# cell_100k = plt_summary(cell_size = 100000, dat = d, n_per_cell = 10)
+# cell_100k$cells_with_data
+# cell_100k$dat_to_use
+# cell_100k$fig

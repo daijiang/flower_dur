@@ -1,0 +1,45 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+source("rcode/00_pkg_functions.R")
+```
+
+# flower_duration
+
+We can use the function `plt_summary()` in [`rcode/00_pkg_functions.R`](rcode/00_pkg_functions.R) to plot the records, overlay with grid cells that we can specify resolution, and count the number of cells with enough data.
+
+```{r}
+d = readr::read_csv("data/Claytonia virginica_inat.csv") %>% 
+  dplyr::select(longitude, latitude, everything()) %>% 
+  filter(flowers == 1) %>% 
+  drop_na(longitude, latitude) %>% 
+  rename(id_iNat = id)
+
+cell_100k = plt_summary(cell_size = 100000, dat = d, n_per_cell = 10)
+```
+
+To get the grid cells with enough records specified by `n_per_cell` argument:
+
+```{r}
+cell_100k$cells_with_data
+```
+
+To get the raw records that to be used (i.e. fall within cells with enough data):
+
+```{r}
+cell_100k$dat_to_use
+```
+
+To see the plot:
+
+```{r fig.width=8, fig.height=6}
+cell_100k$fig
+```
