@@ -1,5 +1,5 @@
-library(tidyverse)
-library(sf)
+if(!require(xfun)) install.packages("xfun")
+xfun::pkg_attach2(c("tidyverse", "sf"))
 
 #' Plot observation data and group by grid cells
 #' 
@@ -68,6 +68,7 @@ plt_summary = function(us_map = readRDS("data/usa_map.rds"),
   list(cells_with_data = cells_with_data, dat_to_use = dat_to_use, fig = plt)
 }
 
+# usage examples ----
 d = readr::read_csv("data/Claytonia virginica_inat.csv") %>% 
   dplyr::select(longitude, latitude, everything()) %>% 
   filter(flowers == 1) %>% 
