@@ -23,6 +23,10 @@ plt_summary = function(us_map = readRDS("data/usa_map.rds"),
   # add grid cell id
   grids = mutate(st_sf(geometry = grids), id_cells = 1:n())
   # convert lat/long to have the same crs
+  if(!(grepl("^long", names(dat)[1], ignore.case = TRUE) &
+              grepl("^lat", names(dat)[2], ignore.case = TRUE))){
+    stop("The first two columns of dat must be longitude and latitude, respectively.")
+  }
   dat = st_transform(st_as_sf(dat, coords = 1:2, crs = 4326), 
                          crs = st_crs(us_map)$proj4string)
   # which cell each point falls in?
@@ -35,6 +39,7 @@ plt_summary = function(us_map = readRDS("data/usa_map.rds"),
   # cells with data
   cells_with_data = dplyr::filter(grids, id_cells %in% dat_cells_count$id_cells) %>% 
     left_join(dat_cells_count, by = "id_cells")
+  # add centroid coords
   cells_with_data = bind_cols(cells_with_data, 
                               suppressWarnings(st_centroid(cells_with_data) %>% 
                                 st_transform(4326) %>% 
@@ -75,7 +80,7 @@ plt_summary = function(us_map = readRDS("data/usa_map.rds"),
 #   drop_na(longitude, latitude) %>% 
 #   rename(id_iNat = id)
 # 
-# cell_100k = plt_summary(cell_size = 100000, dat = d, n_per_cell = 10)
+# cell_100k = plt_summary(cell_size = 30000, dat = d, n_per_cell = 10)
 # cell_100k$cells_with_data
 # cell_100k$dat_to_use
 # cell_100k$fig
