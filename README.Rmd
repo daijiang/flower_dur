@@ -57,6 +57,7 @@ cell_100k$fig_base +
             left_join(cell_100k$grids, by = "id_cells") %>% 
             st_sf(), 
           aes(fill = ave_doy)) +
-  scale_fill_viridis_c()
+  scale_fill_viridis_c() +
+  theme(legend.position = c(0.92, 0.3))
 ```
 
