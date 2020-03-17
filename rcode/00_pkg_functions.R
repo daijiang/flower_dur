@@ -1,5 +1,5 @@
 if(!require(xfun)) install.packages("xfun")
-xfun::pkg_attach2(c("tidyverse", "sf"))
+xfun::pkg_attach2(c("tidyverse", "sf", "lubridate"))
 
 #' Plot observation data and group by grid cells
 #' 
@@ -46,11 +46,17 @@ plt_summary = function(us_map = readRDS("data/usa_map.rds"),
                                 st_coordinates() %>% 
                                 as.data.frame() %>% 
                                 rename(long_cell = X, lat_cell = Y)))
- 
-  plt = ggplot() +
+  
+  # records fall within cells with >= n_per_cell records
+  dat_to_use = filter(dat_cells, id_cells %in%
+                        filter(cells_with_data, enough_data)$id_cells)
+    
+  plt_base = ggplot() +
     geom_sf(data = us_map) +
-    geom_sf(data = grids, alpha = 0, size = 0.1, color = "gray") +
-    geom_sf(data = dat, size = 0.5, alpha = 0.6) +
+    geom_sf(data = grids, alpha = 0, size = 0.1, color = "gray") 
+ 
+  plt = plt_base +
+    geom_sf(data = dat, size = 0.5, alpha = 0.6) + 
     geom_sf(data = filter(cells_with_data, enough_data), alpha = 0, 
             size = 0.15, color = "red") +
     labs(title = paste(nrow(filter(cells_with_data, enough_data)),
@@ -58,26 +64,25 @@ plt_summary = function(us_map = readRDS("data/usa_map.rds"),
                        n_per_cell, 
                        "(Cell resolution:", cell_size/1000, "km by",
                        cell_size/1000, "km)",
-                       collapse = " "))
+                       collapse = " ")) 
+  
   if(show_fig){
     print(plt)
   }
  
   cat(nrow(filter(cells_with_data, enough_data)), 
       "cells with records more than", n_per_cell, "\n")
+
   
-  # records fall within cells with >= n_per_cell records
-  dat_to_use = filter(dat_cells, id_cells %in%
-           filter(cells_with_data, enough_data)$id_cells)
-  
-  list(cells_with_data = cells_with_data, dat_to_use = dat_to_use, fig = plt)
+  list(cells_with_data = cells_with_data, grids = grids,
+       dat_to_use = dat_to_use, fig = plt, fig_base = plt_base)
 }
 
-# usage examples ----
-# d = readr::read_csv("data/Claytonia virginica_inat.csv") %>% 
-#   dplyr::select(longitude, latitude, everything()) %>% 
-#   filter(flowers == 1) %>% 
-#   drop_na(longitude, latitude) %>% 
+# # usage examples ----
+# d = readr::read_csv("data/Claytonia virginica_inat.csv") %>%
+#   dplyr::select(longitude, latitude, everything()) %>%
+#   filter(flowers == 1) %>%
+#   drop_na(longitude, latitude) %>%
 #   rename(id_iNat = id)
 # 
 # cell_100k = plt_summary(cell_size = 30000, dat = d, n_per_cell = 10)

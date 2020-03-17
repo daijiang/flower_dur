@@ -96,3 +96,21 @@ cell_100k$fig
 ```
 
 ![](README_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+
+To plot the summarized data of 2019:
+
+``` r
+cell_100k$fig_base +
+  geom_sf(data = mutate(cell_100k$dat_to_use, observed_yr = lubridate::year(observed_on),
+                        observed_doy = lubridate::yday(observed_on)) %>% 
+            st_drop_geometry() %>% 
+            filter(observed_yr %in% c(2019)) %>% 
+            group_by(observed_yr, id_cells) %>% 
+            summarise(ave_doy = mean(observed_doy, na.rm = T)) %>% 
+            left_join(cell_100k$grids, by = "id_cells") %>% 
+            st_sf(), 
+          aes(fill = ave_doy)) +
+  scale_fill_viridis_c()
+```
+
+![](README_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
