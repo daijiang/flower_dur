@@ -1,5 +1,6 @@
 if(!require(xfun)) install.packages("xfun")
-xfun::pkg_attach2(c("tidyverse", "sf", "lubridate"))
+if(!require(phenesse)) remotes::install_github("mbelitz/phenesse")
+xfun::pkg_attach2(c("tidyverse", "sf", "lubridate", "phenesse", "pbmcapply"))
 
 #' Plot observation data and group by grid cells
 #' 
@@ -78,14 +79,92 @@ plt_summary = function(us_map = readRDS("data/usa_map.rds"),
        dat_to_use = dat_to_use, fig = plt, fig_base = plt_base)
 }
 
-# # usage examples ----
-# d = readr::read_csv("data/Claytonia virginica_inat.csv") %>%
-#   dplyr::select(longitude, latitude, everything()) %>%
-#   filter(flowers == 1) %>%
-#   drop_na(longitude, latitude) %>%
-#   rename(id_iNat = id)
-# 
-# cell_100k = plt_summary(cell_size = 30000, dat = d, n_per_cell = 10)
-# cell_100k$cells_with_data
-# cell_100k$dat_to_use
-# cell_100k$fig
+#' Take the output from plt_summary function and run phenesse on the cell of
+#' interest.
+#' 
+#' @param plt_summary_output The named output of the plt_summary function
+#' @param minimum_obs Minimum records per cell to be used.
+#' @param earliest_year Earliest year to be included in analysis
+#' @param latest_year Latest year to be included in analysis
+#' @param flowering_cutoff Day of year to filter observations by if next year's
+#' flowering maybe occurring in December
+#' @param onset_perct Which percentile to use for onset?
+#' @param offset_perct Which percentile to use for offset?
+#' @param num_cores Number of cores to use in calculation
+#' @return A dataframe of the onset, offset, and duration
+#'  calculation for the cells of interest.
+#'  run_phenesse(cell_100k, 100, 2018, 2018, num_cores = 4)
+
+run_phenesse <- function(plt_summary_output, minimum_obs = 10, 
+                         earliest_year = 2017, last_year = 2019, 
+                         flowering_cutoff = 365, onset_perct = 0,
+                         offset_perct = 1, num_cores){
+  
+  # make Daijiang function output into dataframe
+  df <- plt_summary_output$dat_to_use %>% 
+    st_drop_geometry() %>% 
+    mutate(observed_year = year(observed_on)) %>% 
+    mutate(observed_doy = yday(observed_on)) %>% 
+    # filter data to only years of interest
+    filter(observed_year >= earliest_year & observed_year <= last_year) %>% 
+    filter(observed_doy <= flowering_cutoff)
+  
+  # count number of records for each cell x year combination
+  num_of_records <- df %>% 
+    group_by(observed_year, id_cells) %>% 
+    summarise(count = n()) %>% ungroup() %>% 
+    filter(count >= minimum_obs)
+  
+  # remove cell, year combinations that do not have enough records
+  df_manip <- df %>% 
+    group_by(observed_year, id_cells, observed_doy) %>% 
+    summarise(n_obs = n()) %>% 
+    ungroup() %>% 
+    left_join(num_of_records,  by = c("observed_year", "id_cells")) %>% 
+    filter(!is.na(count)) %>% 
+    select(-count)
+  
+  # make list with all doy values in it for each cell x year combination
+  species_cell_year <- split(df_manip, 
+                             f = list(df_manip$observed_year,
+                                      df_manip$id_cells),
+                             drop = TRUE)
+  
+  # lapply functions
+  setestimator <- function(x, niter = 500, perct = 0){
+    tibble(est = weib_percentile(observations = x$observed_doy, 
+                                 iterations = niter, percentile = perct))
+  }
+  
+  # Estimate onseet and offset
+  if(num_cores > 1){
+    onset <- pbmclapply(species_cell_year, setestimator, 
+                        perct = onset_perct, mc.cores = num_cores)
+    offset <- pbmclapply(species_cell_year, setestimator, 
+                         perct = offset_perct, mc.cores = num_cores)
+  } else{
+    onset <- lapply(species_cell_year, setestimator, perct = onset_perct)
+    offset <- lapply(species_cell_year, setestimator, perct = offset_perct)
+  }  
+  
+  # split outputs back to df
+  onset_df = map_df(onset, ~.x, .id = "yr_cell") %>% 
+    separate("yr_cell", into = c("observed_year", "id_cells"), sep = "[.]") %>% 
+    mutate(id_cells = as.numeric(id_cells),
+           observed_year = as.numeric(observed_year)) %>% 
+    rename(onset = est)
+  
+  offset_df = map_df(offset, ~.x, .id = "yr_cell") %>% 
+    separate("yr_cell", into = c("observed_year", "id_cells"), sep = "[.]") %>% 
+    mutate(id_cells = as.numeric(id_cells),
+           observed_year = as.numeric(observed_year)) %>% 
+    rename(offset = est)
+  
+  # join estimates with original sf dataframe based on cell_ids and year
+  cell_duration <- left_join(onset_df, offset_df, 
+                             by = c("observed_year", "id_cells")) %>% 
+    mutate(duration = offset - onset)
+  
+  return(cell_duration)
+}
+
