@@ -208,7 +208,8 @@ run_phenesse <- function(df, minimum_obs = 10, minimum_days = 3,
   num_of_records <- df %>% 
     group_by(observed_year2, id_cells) %>% 
     summarise(n_records = n(), n_days = n_distinct(observed_on)) %>% ungroup() %>% 
-    filter(n_records >= minimum_obs, n_days >= minimum_days)
+    filter(n_records >= minimum_obs, n_days >= minimum_days) %>% 
+    as.data.frame()
   
   # remove cell, year combinations that do not have enough records
   df_manip <- df %>% 
@@ -226,10 +227,15 @@ run_phenesse <- function(df, minimum_obs = 10, minimum_days = 3,
                              drop = TRUE)
   
   # lapply functions
+  if(onset_perct == 0 | offset_perct == 1) {
   setestimator <- function(x, niter = n_item, perct = 0){
     tibble(est = weib_percentile(observations = x$observed_doy, 
                                  iterations = niter, percentile = perct))
-  }
+  } } else {
+    setestimator <- function(x, niter = n_item, perct = 0){
+      tibble(est = quantile_ci(observations = x$observed_doy, 
+                                   bootstraps = niter, percentile = perct))
+  }}
   
   # Estimate onseet and offset
   if(num_cores > 1){
@@ -243,6 +249,7 @@ run_phenesse <- function(df, minimum_obs = 10, minimum_days = 3,
   }
   
   # split outputs back to df
+  if(onset_perct == 0 | offset_perct == 1) {
   onset_df = map_df(onset, ~.x, .id = "yr_cell") %>% 
     separate("yr_cell", into = c("observed_year2", "id_cells"), sep = "[.]") %>% 
     mutate(id_cells = as.numeric(id_cells),
@@ -254,6 +261,18 @@ run_phenesse <- function(df, minimum_obs = 10, minimum_days = 3,
     mutate(id_cells = as.numeric(id_cells),
            observed_year2 = as.numeric(observed_year2)) %>% 
     rename(offset = est)
+  } else {
+  onset_df = map_df(onset, ~.x$est,  .id = "yr_cell") %>% 
+    separate("yr_cell", into = c("observed_year2", "id_cells"), sep = "[.]") %>% 
+    mutate(id_cells = as.numeric(id_cells),
+           observed_year2 = as.numeric(observed_year2)) %>% 
+    rename(onset = estimate, on_low_ci = low_ci, on_high_ci = high_ci)
+  offset_df = map_df(offset, ~.x$est, .id = "yr_cell") %>% 
+    separate("yr_cell", into = c("observed_year2", "id_cells"), sep = "[.]") %>% 
+    mutate(id_cells = as.numeric(id_cells),
+           observed_year2 = as.numeric(observed_year2)) %>% 
+    rename(offset = estimate, off_low_ci = low_ci, off_high_ci = high_ci)
+  }
   
   # join estimates with original sf dataframe based on cell_ids and year
   cell_duration <- left_join(onset_df, offset_df, 
@@ -263,7 +282,10 @@ run_phenesse <- function(df, minimum_obs = 10, minimum_days = 3,
            base_date = as.Date(paste(observed_year2 - 1, flowering_cutoff, sep = "-")),
            onset_date = base_date + onset,
            offset_date = base_date + offset) %>% 
-    rename(observed_year = observed_year2)
+    rename(observed_year = observed_year2) %>% 
+           ## Convert onset estimates to calendar doy numbers
+    mutate(onset_doy = yday(onset_date), 
+           offset_doy = yday(offset_date))
   
   if(flowering_cutoff == "01-01"){
     cell_duration$observed_year = cell_duration$observed_year - 1
