@@ -1,4 +1,4 @@
-source("Rcode/00_pkg_functions.R")
+source("rcode/00_pkg_functions.R")
 
 d = readr::read_csv("data/Claytonia virginica_inat.csv") %>% 
   dplyr::select(longitude, latitude, everything()) %>% 
